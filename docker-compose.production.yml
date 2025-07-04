@@ -1,0 +1,40 @@
+# docker-compose.production.yml
+version: '3'
+
+volumes:
+  pg_data_production:
+  static_volume:
+
+services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data_production:/var/lib/postgresql/data
+  backend:
+    image: tgnserega/taski_backend
+    env_file: .env
+    # Тут подключаем volume к backend
+    volumes:
+      - static_volume:/backend_static
+    depends_on:
+      - db
+  frontend:
+    env_file: .env
+    image: tgnserega/taski_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static_volume:/frontend_static
+# Добавляем новый контейнер: gateway
+  gateway:
+    # Сбилдить и запустить образ, 
+    # описанный в Dockerfile в папке gateway
+    image: tgnserega/taski_gateway
+    # тут подключаем volume со статикой к gateway
+    volumes:
+      - static_volume:/staticfiles/
+    # Ключ ports устанавливает
+    # перенаправление всех запросов с порта 8000 хоста
+    # на порт 80 контейнера
+    ports:
+      - 8000:80
